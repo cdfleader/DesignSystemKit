@@ -1,4 +1,6 @@
 import SwiftUI
+import UIKit
+import AudioToolbox
 
 @available(macOS 11.0, iOS 14.0, *)
 public struct DSButton: View {
@@ -40,6 +42,8 @@ public struct DSButton: View {
     let icon: Image?
     let action: () -> Void
     
+    @State private var isPressed = false
+    
     public init(
         title: String = "",
         style: Style = .primary,
@@ -57,7 +61,18 @@ public struct DSButton: View {
     }
     
     public var body: some View {
-        Button(action: action) {
+        Button(action: {
+            vibrate()
+            withAnimation(.easeOut(duration: 0.1)) {
+                isPressed = true
+            }
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
+                withAnimation(.spring()) {
+                    isPressed = false
+                }
+            }
+            action()
+        }) {
             ZStack {
                 // Fond principal avec ombre
                 backgroundShape
@@ -97,6 +112,7 @@ public struct DSButton: View {
                     .stroke(borderColor, lineWidth: borderWidth)
             )
         }
+        .scaleEffect(isPressed ? 0.95 : 1.0)
     }
     
     private var backgroundShape: RoundedRectangle {
@@ -331,5 +347,16 @@ public struct DSButton: View {
         default:
             return 0
         }
+    }
+    
+    private func vibrate() {
+        #if os(iOS)
+        let generator = UIImpactFeedbackGenerator(style: .light)
+        generator.prepare()
+        generator.impactOccurred()
+        
+        // Son de clic léger
+        AudioServicesPlaySystemSound(1104) // ID du son de clic léger
+        #endif
     }
 } 
